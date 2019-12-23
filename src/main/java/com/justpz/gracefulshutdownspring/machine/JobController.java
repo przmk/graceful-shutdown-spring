@@ -3,6 +3,7 @@ package com.justpz.gracefulshutdownspring.machine;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -10,6 +11,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class JobController {
 
   private static Logger logger = LoggerFactory.getLogger(JobController.class);
+  private final TaskExecutor taskExecutor;
+
+  public JobController(TaskExecutor taskExecutor) {
+    this.taskExecutor = taskExecutor;
+  }
 
   @GetMapping("small")
   public String runSmallJob() throws InterruptedException {
@@ -29,4 +35,20 @@ public class JobController {
     return String.format("huge id [%d] uuid [%s]", Thread.currentThread().getId(), uuid);
   }
 
+  @GetMapping("smallTask")
+  public String runSmallTask() {
+    String uuid = UUID.randomUUID().toString();
+    taskExecutor.execute(() -> {
+      logger.debug("start small job {}", uuid);
+      try {
+        Thread.sleep(50_000);
+      } catch (InterruptedException e) {
+        logger.error(e.getMessage(), e);
+        Thread.currentThread().interrupt();
+      }
+      logger.debug("end small job {}", uuid);
+    });
+
+    return String.format("small task id [%d] uuid [%s]", Thread.currentThread().getId(), uuid);
+  }
 }
